@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+
 /**
  * Gets bounding boxes for an element. This is implemented for you
  */
@@ -21,14 +23,18 @@ export function getElementBounds(elem: HTMLElement) {
  */
 export function isPointInsideElement(
   coordinate: { x: number; y: number },
-  element: HTMLElement
-): boolean {}
+  element: HTMLElement,
+): boolean {
+  return true;
+}
 
 /**
  * **TBD:** Implement a function that returns the height of the first line of text in an element
  * We will later use this to size the HTML element that contains the hover player
  */
-export function getLineHeightOfFirstLine(element: HTMLElement): number {}
+export function getLineHeightOfFirstLine(element: HTMLElement): number {
+  return parseFloat(window.getComputedStyle(element).lineHeight) || 0;
+}
 
 export type HoveredElementInfo = {
   element: HTMLElement;
@@ -44,5 +50,41 @@ export type HoveredElementInfo = {
  * Note: If using global event listeners, attach them window instead of document to ensure tests pass
  */
 export function useHoveredParagraphCoordinate(
-  parsedElements: HTMLElement[]
-): HoveredElementInfo | null {}
+  parsedElements: HTMLElement[],
+): HoveredElementInfo | null {
+  const [hoveredInfo, setHoveredInfo] = useState<HoveredElementInfo | null>(
+    null,
+  );
+
+  useEffect(() => {
+    function handleMouseMove(event: MouseEvent) {
+      const hoveredElement = parsedElements.find((el) =>
+        el.contains(event.target as Node),
+      );
+
+      if (hoveredElement) {
+        const rect = hoveredElement.getBoundingClientRect();
+        const lineHeight = getLineHeightOfFirstLine(hoveredElement);
+
+        setHoveredInfo({
+          element: hoveredElement,
+          top: rect.top + window.scrollY,
+          left: rect.left + window.scrollX,
+          heightOfFirstLine: lineHeight,
+        });
+      } else {
+        setHoveredInfo(null);
+      }
+    }
+
+    if (parsedElements.length) {
+      window.addEventListener("mousemove", handleMouseMove);
+    }
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+    };
+  }, [parsedElements]);
+
+  return hoveredInfo;
+}

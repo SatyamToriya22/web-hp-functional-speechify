@@ -44,4 +44,53 @@ const IGNORE_LIST = [
  *            </body>;
  *            In this case, #content-1 should not be considered as a top level readable element.
  */
-export function getTopLevelReadableElementsOnPage(): HTMLElement[] {}
+// export function getTopLevelReadableElementsOnPage(): HTMLElement[] {}
+
+export function getTopLevelReadableElementsOnPage(): HTMLElement[] {
+  const isReadableElement = (element: HTMLElement): boolean => {
+    // Ignore elements that are in the block list
+    if (IGNORE_LIST.includes(element.tagName)) return false;
+
+    // Ignore elements with empty or whitespace-only text content
+    if (!element.textContent || element.textContent.trim() === "") return false;
+
+    return true;
+  };
+
+  const isChildOfSingleChildParent = (element: HTMLElement): boolean => {
+    const parent = element.parentElement;
+    return parent ? parent.children.length === 1 : false;
+  };
+
+  const containsTopLevelReadableElement = (parent: HTMLElement): boolean => {
+    for (const child of Array.from(parent.children)) {
+      if (isReadableElement(child as HTMLElement)) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  const result: HTMLElement[] = [];
+  const body = document.body;
+
+  const traverse = (element: HTMLElement) => {
+    if (!isReadableElement(element)) return;
+
+    // Ignore elements that are children of a single-child parent
+    if (isChildOfSingleChildParent(element)) return;
+
+    // Check if the element contains another top-level readable element
+    if (containsTopLevelReadableElement(element)) {
+      Array.from(element.children).forEach((child) =>
+        traverse(child as HTMLElement),
+      );
+    } else {
+      result.push(element);
+    }
+  };
+
+  Array.from(body.children).forEach((child) => traverse(child as HTMLElement));
+
+  return result;
+}
